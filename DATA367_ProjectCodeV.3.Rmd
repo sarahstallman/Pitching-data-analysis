@@ -1,0 +1,557 @@
+---
+title: "DATA367 Final Project Report & Embedded Code"
+author: "Hailey Schleining, Kayla Wilkins, Sarah Stallman, Kylie Mattox"
+date: "2023-05-09"
+output: pdf_document
+---
+
+For our project, we analyzed the act of pitching in baseball, specifically the pitch performance of Justin Verlander. Verlander is a current professional pitcher who recently joined the New York Mets, but previously played for both the Detroit Tigers (2005–2017) and the Houston Astros (2017–2020, 2022). The sport of baseball consists of two competing teams, each with nine players. Games are divided into nine innings, which are further divided into two halves. In the top half of innings, one team is at bat and attempting to score runs, while the opposing team is in the field attempting to stop the batting team from scoring. In the bottom half of innings, the teams switch their positions and at the end of all innings, the team with the most runs wins the game.
+
+Baseball is played on a diamond-shaped field, with the four corners of the diamond being the home plate, first base, second base and third base. When a team is on offense, players take turns at bat, where they attempt to hit the ball far enough from the defensive players in order to give them time to run around the bases. If a player rounds all the bases and returns to home plate, he scores a run for his team. However, if a ball is caught out of the air or is thrown to a base prior to the player arriving at that base, the batter is out. A batter is also out if he is unable to hit the ball off of three good pitches (strikeout). When an offensive team gets three outs, the offense and defense switch positions.
+
+When on defense, players position themselves in the outfield (beyond the first and third baselines), the infield, and most importantly the middle of the infield or the pitcher's mound. This raised dirt area in the center of the infield is where the pitcher pitches. The pitcher is arguably the most important part of the defense as he has the ability to throw strategic pitches that result in either a strikeout or the batter making an out. Pitchers use different types, speeds, and movements of pitches in order to make it more difficult for the batter to hit. Furthermore, there are certain techniques and methods for throwing different pitch types. 
+
+As aforementioned, we analyzed Justin Verlander during his stint as the pitcher for the Detroit Tigers and the Houston Astros from 2015-2017 and 2017-2022 respectively. Our goal was to determine whether there were changes in his pitching performance or pitching patterns when working with different teams and thus different pitching coaches. We analyzed the four main pitch types; 4-seam fastball, curve ball, change up, and slider, and looked to answer the question; Which pitch type thrown by Verlander yielded the best result or the most outs? Additionally, we analyzed how certain pitching variables affect the result when a player is at bat. Lastly, we used this information to build linear and logistic models to predict the result given each variable and to predict the likelihood of an out, respectively. 
+
+The results of our project analysis could benefit Verlander’s coaching staff by providing them with a thorough analysis of his pitching performance and patterns and how these have changed over the course of his career. Additionally, our analysis could provide his new coaches at the Mets with data on the most effective pitch for Verlander and thus help them identify which pitch to prioritize in practice. It could also help coaches determine if a pitcher, like Verlander, is continuing to improve as he ages and becomes more at risk for injury. Lastly, our results could place a greater emphasis on pitching coaches and their impact on the game. Information on a player’s pitching performance and patterns can lead to an increased pay and recognition for pitching coaches, as teams might see how a change in pitching coach can significantly alter a pitcher’s performance. 
+
+Below we will walk through the code involved in our project while discussing the analysis and results. 
+
+### Before running our code ensure you have the following packages installed:
+
+```{r}
+#install.packages("car")
+#install.packages("dplyr")
+```
+
+
+### Uploading Data:
+
+```{r}
+library(dplyr)
+#reading the csv's
+detroit <- read.csv("Verlander_Detroit_Fixed.csv")
+houston <- read.csv("Verlander_Houston_Fixed.csv")
+
+#sorting by result
+detroit <- detroit %>% arrange(Result)
+houston <- houston %>% arrange(Result)
+
+#getting rid of blanks in data frames
+detroit <- subset(detroit, subset=(detroit$Pitch.Type != ""))
+houston <- subset(houston, subset=(houston$Pitch.Type != ""))
+
+#getting rid of cutter and sinker pitch types due to there being very few
+detroit <- subset(detroit, subset=(detroit$Pitch.Type != "Cutter"))
+houston <- subset(houston, subset=(houston$Pitch.Type != "Cutter"))
+detroit <- subset(detroit, subset=(detroit$Pitch.Type != "Sinker"))
+```
+
+The first method of analysis we used to try and answer some of our questions was determining the probabilities and proportions of certain variables, mainly the results and the types of pitches thrown in our data set. This was done by taking the amount of data points in each category and dividing them by the total data set, optimized through the use of data frames in R. By doing this, we can see if there are any immediate significant differences in Verlander’s performance between the two teams.
+
+
+```{r}
+# looking at the number of each result for both teams
+detroit$Result <- as.factor(detroit$Result)
+summary(detroit$Result)
+houston$Result <- as.factor(houston$Result)
+summary(houston$Result)
+```
+
+
+```{r}
+# looking at the number of each pitch type for both teams
+detroit$Pitch.Type <- as.factor(detroit$Pitch.Type)
+summary(detroit$Pitch.Type)
+houston$Pitch.Type <- as.factor(houston$Pitch.Type)
+summary(houston$Pitch.Type)
+```
+
+### Detroit Result Probabilities:
+
+```{r}
+#determining the probabilities of each result for Detroit
+probs1 <- data.frame(summary(detroit$Result))
+colnames(probs1) <- "Number"
+probs1$probability <- probs1$Number/2003
+probs1
+```
+
+From looking at the initial probabilities of each result for Detroit we see that field out is the most likely at 0.401 and then strikeout follows at 0.270. Both of these outcomes are beneficial for Detroit.
+
+### Houston Result Probabilities: 
+
+```{r}
+#determining the probabilities of each result for Houston
+probs2 <- data.frame(summary(houston$Result))
+colnames(probs2) <- "Number"
+probs2$probability <- probs2$Number/2739
+probs2
+```
+
+From looking at the initial probabilities of each result for Houston we see that field out is the most likely at 0.387 and then strikeout follows at 0.335. Both of these outcomes are beneficial for Houston.
+
+### Detroit Pitch Type Probabilities:
+
+```{r}
+#determining the probabilities of each pitch type for Detroit
+probs3 <- data.frame(summary(detroit$Pitch.Type))
+colnames(probs3) <- "Number"
+probs3$probability <- probs3$Number/2003
+probs3
+```
+
+
+### Houston Pitch Type Probabilities:
+
+```{r}
+#determining the probabilities of each pitch type for Houston
+probs4 <- data.frame(summary(houston$Pitch.Type))
+colnames(probs4) <- "Number"
+probs4$probability <- probs4$Number/2739
+probs4
+```
+
+We determined the probability of each result occurring on each team. For Detroit, field out had the highest probability at 0.401 and strikeout had the second highest at 0.270. For Houston, field out was also the highest at 0.387 and strikeout was a close second at 0.335 which is notably higher than the strikeout probability when Verlander played for Detroit. 
+
+We then determined the probability of each main pitch type from Verlander on each team which was the 4-seam fastball, slider, curve ball, and change up. For Detroit, the probability of Verlander pitching a 4-seam fastball, slider, curve ball, and change up is 0.529, 0.229, 0.152, and 0.090 respectively. For Houston, the probability of Verlander pitching a 4-seam fastball, slider, curve ball, and change up is 0.484, 0.329, 0.154, and 0.032 respectively. His 4-seam fastball probability decreased while his slider probability increased. 
+
+Although some of our probabilities produced results that reached a conclusion that there was a significant difference between the two teams based on judgment alone, we decided to put some of our values through a series of Z-Tests to see if the difference we were seeing really was significant in terms of statistics. Although we did not compare every probability we calculated, we did the ones we deemed most important. In these Z-Tests, we compared the proportions of Strikeouts, 4-Seam Fastballs, and Sliders between the two teams. 
+
+### Comparing Probabilities of Strikeouts (Z-test):
+
+```{r}
+#isolating the strikeout probability from the previous probability data frame 
+#detroit strikeouts probability
+probs1["Strikeout",2]
+
+#houston strikeouts probability
+probs2["Strikeout",2]
+
+#determining whether there is a significant difference
+p_bar <- (probs1["Strikeout",1] + probs2["Strikeout",1])/(2003+2739)
+z <- (probs1["Strikeout",2] - probs2["Strikeout",2])/sqrt((p_bar*(1-p_bar))*((1/2003)+(1/2739)))
+z
+```
+
+The results from the z test on the strikeout probabilities of Detroit vs Houston resulted in a significant difference with a z-value of 4.795. Due to the high z-value, and thus small p-value, we can reject the null hypothesis. There is significant evidence to say that the probability of getting a strikeout is different for each team, with the Astros having the higher strikeout probability.
+
+### Comparing Probabilities of 4-Seam Fastballs (Z-Test)
+
+```{r}
+probs3["4-Seam Fastball",2]
+probs4["4-Seam Fastball",2]
+p_bar <- (probs3["4-Seam Fastball",1] + probs4["4-Seam Fastball",1])/(2003+2739)
+z <- (probs3["4-Seam Fastball",2] - probs4["4-Seam Fastball",2])/sqrt((p_bar*(1-p_bar))*((1/2003)+(1/2739)))
+z
+```
+
+The p-value this z-value corresponds to is approximately .00135. We would reject the null hypothesis, concluding that there is a significant difference in the proportion of 4-Seam Fastballs that Verlander threw for Detroit and for Houston.
+
+### Comparing Probabilities of Sliders (Z-Test):
+
+```{r}
+probs3["Slider",2]
+probs4["Slider",2]
+p_bar <- (probs3["Slider",1] + probs4["Slider",1])/(2003+2739)
+z <- (probs3["Slider",2] - probs4["Slider",2])/sqrt((p_bar*(1-p_bar))*((1/2003)+(1/2739)))
+z
+```
+
+The p-value this z-value corresponds to is < .00001. We would reject the null hypothesis, concluding that there is a significant difference in the proportion of Sliders that Verlander threw for Detroit and for Houston.
+
+In order to determine how well the variables Launch Angle, Pitch Type, Distance, Exit Velocity, and Pitch Miles per Hour predicted the results of a pitch, we created four models: one linear and one logistic model for each team. By doing this, we can put Verlander’s pitching style and how the batter responds to one of his pitches into a more mathematical view. To do this, we first converted any categorical variables, such as Pitch Type, into a numerical one. Most notably, however, this needed to be done with Result. With linear regression, we needed to convert Result into numbers ranging from 0 to 5, corresponding to On Base Plus Slugging values. We assigned 0's to all outs, 1's to anything that would result in a player getting on 1st base, 2 for a single, 3 for a double, 4 for a triple, and 5 for a home run. However, with logistic regression, Result was converted to a 0 if the pitch was not an out, while a 1 was an out. This is because we were looking for effectiveness of the pitcher, meaning an out would be a success on their part and anything else a failure. 
+
+
+### Setting up Linear Regression (Detroit):
+
+```{r}
+linreg_det <- detroit
+linreg_det$Result <- as.character(linreg_det$Result)
+linreg_det[linreg_det$Result == "Strikeout", 6] <- 0
+linreg_det[linreg_det$Result == "Field Out", 6] <- 0
+linreg_det[linreg_det$Result == "Force Out", 6] <- 0
+linreg_det[linreg_det$Result == "Field Error", 6] <- 0
+linreg_det[linreg_det$Result == "Double Play", 6] <- 0
+linreg_det[linreg_det$Result == "Grounded Into Double Play", 6] <- 0
+linreg_det[linreg_det$Result == "Strikeout Double Play", 6] <- 0
+linreg_det[linreg_det$Result == "Fielders Choice Out", 6] <- 0
+linreg_det[linreg_det$Result == "Hit By Pitch", 6] <- 1
+linreg_det[linreg_det$Result == "Walk", 6] <- 1
+linreg_det[linreg_det$Result == "Sac Bunt", 6] <- 1
+linreg_det[linreg_det$Result == "Sac Fly", 6] <- 1
+linreg_det[linreg_det$Result == "Fielders Choice", 6] <- 1
+linreg_det[linreg_det$Result == "Single", 6] <- 2
+linreg_det[linreg_det$Result == "Double", 6] <- 3
+linreg_det[linreg_det$Result == "Triple", 6] <- 4
+linreg_det[linreg_det$Result == "Home Run", 6] <- 5
+
+linreg_det$Pitch.Type <- as.character(linreg_det$Pitch.Type)
+
+linreg_det[linreg_det$Pitch.Type == "4-Seam Fastball", 12] <- 0
+linreg_det[linreg_det$Pitch.Type == "Changeup", 12] <- 1
+linreg_det[linreg_det$Pitch.Type == "Curveball", 12] <- 2
+linreg_det[linreg_det$Pitch.Type == "Slider", 12] <- 3
+
+linreg_det$Result <- as.numeric(linreg_det$Result)
+linreg_det$Pitch.Type <- as.numeric(linreg_det$Pitch.Type)
+```
+
+### Setting up Linear Regression (Houston):
+
+```{r}
+linreg_hou <- houston
+linreg_hou$Result <- as.character(linreg_hou$Result)
+linreg_hou[linreg_hou$Result == "Strikeout", 6] <- 0
+linreg_hou[linreg_hou$Result == "Field Out", 6] <- 0
+linreg_hou[linreg_hou$Result == "Force Out", 6] <- 0
+linreg_hou[linreg_hou$Result == "Field Error", 6] <- 0
+linreg_hou[linreg_hou$Result == "Double Play", 6] <- 0
+linreg_hou[linreg_hou$Result == "Grounded Into Double Play", 6] <- 0
+linreg_hou[linreg_hou$Result == "Strikeout Double Play", 6] <- 0
+linreg_hou[linreg_hou$Result == "Fielders Choice Out", 6] <- 0
+linreg_hou[linreg_hou$Result == "Hit By Pitch", 6] <- 1
+linreg_hou[linreg_hou$Result == "Walk", 6] <- 1
+linreg_hou[linreg_hou$Result == "Sac Bunt", 6] <- 1
+linreg_hou[linreg_hou$Result == "Catcher Interf", 6] <- 1
+linreg_hou[linreg_hou$Result == "Sac Fly", 6] <- 1
+linreg_hou[linreg_hou$Result == "Fielders Choice", 6] <- 1
+linreg_hou[linreg_hou$Result == "Single", 6] <- 2
+linreg_hou[linreg_hou$Result == "Double", 6] <- 3
+linreg_hou[linreg_hou$Result == "Triple", 6] <- 4
+linreg_hou[linreg_hou$Result == "Home Run", 6] <- 5
+
+linreg_hou$Pitch.Type <- as.character(linreg_hou$Pitch.Type)
+
+linreg_hou[linreg_hou$Pitch.Type == "4-Seam Fastball", 12] <- 0
+linreg_hou[linreg_hou$Pitch.Type == "Changeup", 12] <- 1
+linreg_hou[linreg_hou$Pitch.Type == "Curveball", 12] <- 2
+linreg_hou[linreg_hou$Pitch.Type == "Slider", 12] <- 3
+
+linreg_hou$Pitch.Type <- as.numeric(linreg_hou$Pitch.Type)
+linreg_hou$Result <- as.numeric(linreg_hou$Result)
+```
+
+### Setting up Logistic Regression (Detroit):
+
+```{r}
+logreg_det <- detroit
+logreg_det$Result <- as.character(logreg_det$Result)
+logreg_det[logreg_det$Result == "Strikeout", 6] <- 1
+logreg_det[logreg_det$Result == "Field Out", 6] <- 1
+logreg_det[logreg_det$Result == "Force Out", 6] <- 1
+logreg_det[logreg_det$Result == "Field Error", 6] <- 1
+logreg_det[logreg_det$Result == "Double Play", 6] <- 1
+logreg_det[logreg_det$Result == "Grounded Into Double Play", 6] <- 1
+logreg_det[logreg_det$Result == "Strikeout Double Play", 6] <- 1
+logreg_det[logreg_det$Result == "Fielders Choice Out", 6] <- 1
+logreg_det[logreg_det$Result == "Hit By Pitch", 6] <- 0
+logreg_det[logreg_det$Result == "Walk", 6] <- 0
+logreg_det[logreg_det$Result == "Sac Bunt", 6] <- 0
+logreg_det[logreg_det$Result == "Sac Fly", 6] <- 0
+logreg_det[logreg_det$Result == "Fielders Choice", 6] <- 0
+logreg_det[logreg_det$Result == "Single", 6] <- 0
+logreg_det[logreg_det$Result == "Double", 6] <- 0
+logreg_det[logreg_det$Result == "Triple", 6] <- 0
+logreg_det[logreg_det$Result == "Home Run", 6] <- 0
+
+logreg_det$Pitch.Type <- as.character(logreg_det$Pitch.Type)
+
+logreg_det[logreg_det$Pitch.Type == "4-Seam Fastball", 12] <- 0
+logreg_det[logreg_det$Pitch.Type == "Changeup", 12] <- 1
+logreg_det[logreg_det$Pitch.Type == "Curveball", 12] <- 2
+logreg_det[logreg_det$Pitch.Type == "Slider", 12] <- 3
+
+logreg_det$Pitch.Type <- as.numeric(logreg_det$Pitch.Type)
+logreg_det$Result <- as.numeric(logreg_det$Result)
+```
+
+### Setting up Logistic Regression (Houston):
+
+```{r}
+logreg_hou <- houston
+logreg_hou$Result <- as.character(logreg_hou$Result)
+logreg_hou[logreg_hou$Result == "Strikeout", 6] <- 1
+logreg_hou[logreg_hou$Result == "Field Out", 6] <- 1
+logreg_hou[logreg_hou$Result == "Force Out", 6] <- 1
+logreg_hou[logreg_hou$Result == "Field Error", 6] <- 1
+logreg_hou[logreg_hou$Result == "Double Play", 6] <- 1
+logreg_hou[logreg_hou$Result == "Grounded Into Double Play", 6] <- 1
+logreg_hou[logreg_hou$Result == "Strikeout Double Play", 6] <- 1
+logreg_hou[logreg_hou$Result == "Fielders Choice Out", 6] <- 1
+logreg_hou[logreg_hou$Result == "Hit By Pitch", 6] <- 0
+logreg_hou[logreg_hou$Result == "Walk", 6] <- 0
+logreg_hou[logreg_hou$Result == "Sac Bunt", 6] <- 0
+logreg_hou[logreg_hou$Result == "Catcher Interf", 6] <- 0
+logreg_hou[logreg_hou$Result == "Sac Fly", 6] <- 0
+logreg_hou[logreg_hou$Result == "Fielders Choice", 6] <- 0
+logreg_hou[logreg_hou$Result == "Single", 6] <- 0
+logreg_hou[logreg_hou$Result == "Double", 6] <- 0
+logreg_hou[logreg_hou$Result == "Triple", 6] <- 0
+logreg_hou[logreg_hou$Result == "Home Run", 6] <- 0
+
+logreg_hou$Pitch.Type <- as.character(logreg_hou$Pitch.Type)
+
+logreg_hou[logreg_hou$Pitch.Type == "4-Seam Fastball", 12] <- 0
+logreg_hou[logreg_hou$Pitch.Type == "Changeup", 12] <- 1
+logreg_hou[logreg_hou$Pitch.Type == "Curveball", 12] <- 2
+logreg_hou[logreg_hou$Pitch.Type == "Slider", 12] <- 3
+
+logreg_hou$Pitch.Type <- as.numeric(logreg_hou$Pitch.Type)
+logreg_hou$Result <- as.numeric(logreg_hou$Result)
+```
+
+
+### Here we are looking at how many of each pitch type is resulting in a strikeout for detroit and houston
+
+```{r}
+#detroit
+det_so <- subset(detroit, subset=(detroit$Result == "Strikeout"))
+#houston
+hou_so <- subset(houston, subset=(houston$Result == "Strikeout"))
+summary(det_so$Pitch.Type)
+summary(hou_so$Pitch.Type)
+```
+Looking at the counts of strikeouts resulting from each pitch type we see that for Detroit, 51.8% of strikeouts resulted from 4-seam fastballs and 24% resulted from sliders. Whereas for Houston, 38% of strikeouts resulted from 4-seam fastballs and 40.4% resulted from sliders. That is nearly double the percentage of strikeouts resulting from sliders compared to when Verlander played for Detroit. 
+
+Before building our final models, we checked each predictor individually to see if it was significant in predicting the result. 
+
+### Here we are looking at the relationship between pitch type and result for both houston and detroit with the linear and logistic regression cases.
+```{r}
+#linear relationship between Pitch Type & Result for Detroit
+summary(lm(Result ~ Pitch.Type, data=linreg_det))
+#linear relationship between Pitch Type & Result for Houston
+summary(lm(Result ~ Pitch.Type, data=linreg_hou))
+
+#logistic relationship between Pitch Type & Result for Detroit
+summary(glm(Result ~ Pitch.Type, data=logreg_det, family = binomial))
+#logistic relationship between Pitch Type & Result for Houston
+summary(glm(Result ~ Pitch.Type, data=logreg_hou, family = binomial))
+```
+
+Using a significance level of 0.05, pitch type is not significant when using a linear model comparison for Detroit (0.0602 > 0.05) but it is significant for the logistic model for Detroit and for Houston in both cases.
+
+Now we will do a linear and logistic regression as we did above but for our other variables: Exit Velocity, Distance, Pitch MPH, and Launch Angle for each team: Houston and Detroit.
+
+### Linear regression model for Houston
+
+```{r}
+#linear relationship between exit velocity and result for Houston
+linreg_hou_ev <-  lm(linreg_hou$Result ~ linreg_hou$EV..MPH., data = linreg_hou)
+summary(linreg_hou_ev)
+
+#linear relationship between distance and result for Houston
+linreg_hou_dist <-  lm(linreg_hou$Result ~ linreg_hou$Dist..ft., data = linreg_hou)
+summary(linreg_hou_dist)
+
+#linear relationship between pitch MPH and result for Houston
+linreg_hou_mph <-  lm(linreg_hou$Result ~ linreg_hou$Pitch..MPH., data = linreg_hou)
+summary(linreg_hou_mph)
+
+#linear relationship between launch angle and result for Houston
+linreg_hou_la <-  lm(linreg_hou$Result ~ linreg_hou$LA, data = linreg_hou)
+summary(linreg_hou_la)
+```
+
+All variables (pitch MPH, launch angle, distance, and exit velocity) are statistically significant (< 0.05) for the linear comparison with results for Houston.
+
+### Linear regression model for Detroit
+
+```{r}
+#linear relationship between exit velocity and result for Detroit
+linreg_det_ev <-  lm(linreg_det$Result ~ linreg_det$EV..MPH., data = linreg_det)
+summary(linreg_det_ev)
+
+#linear relationship between distance and result for Detroit
+linreg_det_dist <-  lm(linreg_det$Result ~ linreg_det$Dist..ft., data = linreg_det)
+summary(linreg_det_dist)
+
+#linear relationship between pitch MPH and result for Detroit
+linreg_det_mph <-  lm(linreg_det$Result ~ linreg_det$Pitch..MPH., data = linreg_det)
+summary(linreg_det_mph)
+
+#linear relationship between launch angle and result for Detroit
+linreg_det_la <-  lm(linreg_det$Result ~ linreg_det$LA, data = linreg_det)
+summary(linreg_det_la)
+```
+
+Launch angle, distance, and exit velocity are statistically significant (< 0.05) but pitch MPH is not for the linear comparison with results for Houston.
+
+### Logistic regression model for Detroit
+
+```{r}
+#logistic relationship between distance and result for Detroit
+dist_log_det = glm(Result~Dist..ft., data = logreg_det, family = "binomial")
+summary(dist_log_det)   
+
+#logistic relationship between exit velocity and result for Detroit
+ev_log_det = glm(Result~EV..MPH., data = logreg_det, family = "binomial")
+summary(ev_log_det)  
+
+#logistic relationship between launch angle and result for Detroit
+la_log_det = glm(Result~LA...., data = logreg_det, family = "binomial")
+summary(la_log_det)  
+
+#logistic relationship between pitch MPH and result for Detroit
+pitch_mph_log_det = glm(Result~Pitch..MPH., data = logreg_det, family = "binomial")
+summary(pitch_mph_log_det) 
+```
+
+Launch angle, distance, and exit velocity are statistically significant (< 0.05) but pitch MPH is not for the logistic comparison with results for Houston.
+
+
+### Logistic regression model for Houston
+
+```{r}
+#logistic relationship between distance and result for Houston
+dist_log_hou = glm(Result~Dist..ft., data = logreg_hou, family = "binomial")
+summary(dist_log_hou)   
+
+#logistic relationship between exit velocity and result for Houston
+ev_log_hou = glm(Result~EV..MPH., data = logreg_hou, family = "binomial")
+summary(ev_log_hou)  
+
+#logistic relationship between launch angle and result for Houston
+la_log_hou = glm(Result~LA...., data = logreg_hou, family = "binomial")
+summary(la_log_hou)  
+
+#logistic relationship between pitch MPH and result for Houston
+pitch_mph_log_hou = glm(Result~Pitch..MPH., data = logreg_hou, family = "binomial")
+summary(pitch_mph_log_hou)  
+```
+All variables (pitch MPH, launch angle, distance, and exit velocity) are statistically significant (< 0.05) for the logistic comparison with results for Houston.
+
+While looking at the results of all four regressions, we found that Pitch MPH was only significant for Houston thus we did not include it in the final models for consistency. The type of pitch was determined to be insignificant only for Detroit’s linear regression model, so to keep things consistent, we did not include Pitch Type in both linear models as well. However, we did include it in our logistic models. The rest of the predictors were significant, so we constructed final models with them. 
+
+However, in checking each model for collinearity through the use of Variance Inflation Factors (VIF).
+```{r}
+library(car)
+vif(lm(Result ~ LA.... + EV..MPH. + Dist..ft., data = linreg_det))
+vif(lm(Result ~ EV..MPH. + Dist..ft., data = linreg_det))
+```
+
+
+It was discovered that Launch Angle was inciting collinearity in our model due to the VIF value being over 10. One major consequence of this was that our linear models were giving negative results in some cases when none of the results were assigned negative values, making our linear models unreadable. Because of this, we removed Launch Angle from the final model, which fixed the issue.
+
+### Final Models for Logistic and Linear Regressions
+```{r}
+#final linear model for Detroit
+final_lm_det <- (lm(Result ~ EV..MPH. + Dist..ft., data=linreg_det))
+summary(final_lm_det)
+
+#final linear model for Houston
+final_lm_hou <- (lm(Result ~ EV..MPH. + Dist..ft., data=linreg_hou))
+summary(final_lm_hou)
+
+#final logistic model for Detroit
+final_glm_det <- (glm(Result ~ Pitch.Type + EV..MPH. + Dist..ft., data=logreg_det, family=binomial))
+summary(final_glm_det)
+
+#final logistic model for Houston
+final_glm_hou <- (glm(Result ~ Pitch.Type + EV..MPH. + Dist..ft., data=logreg_hou, family=binomial))
+summary(final_glm_hou)
+```
+
+
+### Here we are determining the accuracy of the final logistic model for detroit
+```{r}
+prob3 <- predict(final_glm_det, type = "response")
+pred3 <- rep('Not Out', length(prob3))
+pred3[prob3 > .6] <- "Out"
+table(pred3, logreg_det$Result)
+```
+
+The percentage of correct predictions for a threshold of .6 on the training data is (115+1261)/2003, or about 68%. This means the training error rate is about 31%. For outs, the model is correct about 90% of the time, while for not outs, the model is right about 19% of the time.
+
+
+### Determining the accuracy of the logistic model for Houston
+```{r}
+prob4 <- predict(final_glm_hou, type = "response")
+pred4 <- rep('Not Out', length(prob4))
+pred4[prob4 > .6] <- "Out"
+table(pred4, logreg_hou$Result)
+```
+
+The percentage of correct predictions for a threshold of .6 on the training data is (138+1870)/2739, or about 73%. This means the training error rate is about 26%. For outs, the model is correct about 91% of the time, while for not outs, the model is right about 20% of the time.
+
+Above, we checked our models’ accuracy. This was done by looking at our R-Squared values for our linear models and testing our logistic models against predicted values to see how many they misclassify. The R-Squared value for Detroit was .1447 and the one for Houston was .1814, which are very low values overall. For logistic regression, our total error rate for Detroit was 31% while the error rate for Houston was 27% when the threshold for the predicted values was set at 0.6. It was found that our logistic models tended to over predict the amount of outs, and while that did boost our total accuracy (as the models were correct in predicting outs about 90% of the time) it means that the accuracy in predicting not outs suffered. So while our models may be accurate in predicting outs, they are not reliable enough to distinguish between outs and not outs.
+
+Now we are comparing the means of Launch Angle, Exit Velocity, and Distance to see if the average performance of the batter when Verlander was pitching. 
+
+### comparing the means of our different predictive variables to determine if there are significant differences between Houston and Detroit
+```{r}
+#removing NA values for exit velocity
+detroit_fixed_ev <- subset(detroit, subset=(detroit$EV..MPH. != 0))
+houston_fixed_ev <- subset(houston, subset=(houston$EV..MPH. != 0))
+#removing NA values for launch angle
+detroit_fixed_la <- subset(detroit, subset=(detroit$LA != -180))
+houston_fixed_la <- subset(houston, subset=(houston$LA != -180))
+#removing NA values for distance
+detroit_fixed_dist <- subset(detroit, subset=(detroit$Dist..ft. != 0))
+houston_fixed_dist <- subset(houston, subset=(houston$Dist..ft. != 0))
+
+zEV <- (mean(detroit_fixed_ev$EV..MPH.)-mean(houston_fixed_ev$EV..MPH.))/sqrt((var(detroit_fixed_ev$EV..MPH.)/1296)+(var(houston_fixed_ev$EV..MPH.)/1644))
+zEV
+
+zLA <- (mean(detroit_fixed_la$LA)-mean(houston_fixed_la$LA))/sqrt((var(detroit_fixed_la$LA)/1296)+(var(houston_fixed_la$LA)/1644))
+zLA
+
+zDist <- (mean(detroit_fixed_dist$Dist..ft.)-mean(houston_fixed_dist$Dist..ft.))/sqrt((var(detroit_fixed_dist$Dist..ft.)/1296)+(var(houston_fixed_dist$Dist..ft.)/1644))
+zDist
+```
+the z value for the EV is 0.988
+the z value for the LA is 0.119
+the z value for the distance is 1.016
+
+While we determined that the proportions of Strikeouts, 4-Seam Fastballs, and Sliders were significantly different across both teams, Launch Angle, Exit Velocity, and Distance were determined to not have a statistically significant difference based on the resulting z-values noted above.
+
+Now we will look at the mean of each variable and compare to known optimal performance ranges:
+```{r}
+#exit velocity average Detroit
+mean(detroit_fixed_ev$EV..MPH.)
+#exit velocity average Houston
+mean(houston_fixed_ev$EV..MPH.)
+
+#launch angle average Detroit
+mean(detroit_fixed_la$LA)
+#launch angle average Houston
+mean(houston_fixed_la$LA)
+
+#distance average Detroit
+mean(detroit_fixed_dist$Dist..ft.)
+#distance average Houston
+mean(houston_fixed_dist$Dist..ft.)
+```
+The ideal performance range for launch angle is 10 to 30 degrees. Therefore the opposing batters are hitting within the range with the average on both team being roughly 17 degrees. Additionally, the value barely changed when comparing Detroit to Houston.
+
+For exit velocity and distance, the higher the value the better. The average MLB exit velocity lies around 90 mph so the averages above at 88 mph is slightly below the average for the MLB. An MLB player can hit a ball up to 400+ ft to get a home run in the center outfield. First base is 90 ft away, so considering these dimensions, the average distances are significant but still somewhat low compared to what it would take to get a home run. Additionally the distance decreased while he played for Houston which indicates that his pitching performance increased. 
+
+### Results in Context:
+
+From the results discussed above our initial conclusion is that when Verlander played for Houston his strikeout probability significantly increased and the amount of Sliders he was throwing also increased while the amount of 4-seam fastballs he was throwing decreased. The percentage of sliders resulting in strikeouts nearly doubled while the percentage of fastballs resulting in strikeouts slightly decreased. This shows that Verlander throwing more Sliders increased his pitching performance significantly by more pitches resulting in strikeouts. 
+
+The results from our significance tests of the linear and logistic regressions show that pitch MPH became a significant factor when Verlandar started playing for Houston. Although, pitch type maintains a higher significance when Verlander played for Detroit and Houston. Therefore, it is likely more important for the pitcher to focus on the pitch type and form rather than focusing on throwing at a high MPH. 
+
+Lastly, there wasn't a significant difference in the batters performance based on launch angle, exit velocity, and distance. Keeping this aspect of the game constant allows us to conclude that his pitching performance improved given the increase in strikeouts he was pitching. This makes sense as he went on to win the 2022 World Series for the Astros. 
+
+After discovering during our presentation that sliders are known to be the easiest to hit a home run on, we decided to do some further research to determine whether Verlander is getting more strikeouts at the expense of more home runs or if he is simply skilled when it comes to throwing this specific pitch.
+
+We have found that approximately 3.195% of all pitches during Verlander’s time on Detroit resulted in a home run (64 out of 2003) whereas roughly 3.395% of his pitches for Houston yielded a home run (97 out of 2739). This is only a 0.2% difference.
+
+Of all Verlander’s sliders on Detroit about 3% resulted in a home run (14 out of 458).
+
+Of all Verlander’s sliders on Houston only 2.77% resulted in a home run (25 out of 902).
+
+This shows that Verlander’s skill is genuinely increasing, especially when it comes to throwing sliders and further emphasizes our conclusion that he should focus on throwing more sliders.
+
+### Future Work/Conclusions
+
+If we were able to expand upon this project there are many things we could do. We believe we could have made a more accurate model if we had access to other data such as pitch location in or outside of the box, and then we would be able to see if this variable had any significant impact on our other variables.
+
+It would also be interesting to run the same tests on data from other pitchers on different MLB teams and compare results to see if there are any differences. We could also compare data from pitchers who have had the same coaches to see how much of an impact the coach has on a pitcher’s performance if we found that these pitchers were coached similarly.
+
+We could have also looked more into the data for individual batters to collect results on their batting tendencies. If we were able to determine any significance or consistency among a batter’s hitting style this information could be used to strategize which pitch would be best to throw against them. 
+
+It was recently announced that Verlander has signed to the New York Mets for the upcoming MLB season. The conclusions we were able to make from this project as well as the suggestions for further research may be useful for Verlander’s new coaching staff on his new team.
+
+
